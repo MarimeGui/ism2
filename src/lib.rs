@@ -2,8 +2,14 @@ extern crate ez_io;
 extern crate magic_number;
 
 pub mod error;
+pub mod joint_definition;
+pub mod joint_extra;
+pub mod model_data;
 
 use error::ISM2ImportError;
+use joint_definition::JointDefinition;
+use joint_extra::JointExtra;
+use model_data::ModelData;
 use ez_io::ReadE;
 use magic_number::check_magic_number;
 use std::io::{Read, Seek, SeekFrom};
@@ -18,12 +24,13 @@ pub struct ISM2 {
     pub sections: Vec<Section>
 }
 
+/// Lists section types
 #[repr(u32)]
 pub enum Section {
     StringsTable(Vec<String>),
-    JointDefinition,
-    JointExtra,
-    ModelData
+    JointDefinition(JointDefinition),
+    JointExtra(JointExtra),
+    ModelData(ModelData)
 }
 
 impl ISM2 {
@@ -50,13 +57,13 @@ impl ISM2 {
                     sections.push(Section::StringsTable(strings_table.clone()));
                 }
                 0x03 => {  // Joint Definition
-                    unimplemented!();
+                    sections.push(Section::JointDefinition(JointDefinition::import(reader, &strings_table)?));
                 }
                 0x32 => {  // Joint Extra Information
-                    unimplemented!();
+                    sections.push(Section::JointExtra(JointExtra::import(reader, &strings_table)?));
                 }
                 0x0B => {  // Model Data
-                    unimplemented!();
+                    sections.push(Section::ModelData(ModelData::import(reader, &strings_table)?));
                 }
                 _ => {}
             }
@@ -69,6 +76,7 @@ impl ISM2 {
     }
 }
 
+/// Reads a String Table from a file and returns a vector containing all entries, preserving the original indices.
 pub fn import_strings_table<R: Read + Seek>(reader: &mut R) -> CResult<Vec<String>> {
     check_magic_number(reader, vec![0x21, 0x00, 0x00, 0x00])?;
     reader.seek(SeekFrom::Current(4))?;
