@@ -1,6 +1,5 @@
 extern crate ez_io;
 extern crate half;
-extern crate magic_number;
 
 pub mod error;
 pub mod joint_definition;
@@ -9,10 +8,9 @@ pub mod model_data;
 pub mod string_table;
 
 use error::ISM2ImportError;
-use ez_io::ReadE;
+use ez_io::{MagicNumberCheck, ReadE};
 use joint_definition::JointDefinition;
 use joint_extra::JointExtra;
-use magic_number::check_magic_number;
 use model_data::ModelData;
 use std::io::{Read, Seek, SeekFrom};
 use string_table::import_strings_table;
@@ -44,7 +42,7 @@ impl ISM2 {
     /// Imports ISM2 from the binary file
     pub fn import<R: Read + Seek>(reader: &mut R) -> Result<ISM2> {
         // Hello There! General Information
-        check_magic_number(reader, vec![b'I', b'S', b'M', b'2'])?;
+        reader.check_magic_number(&[b'I', b'S', b'M', b'2'])?;
         let version = reader.read_le_to_u32()?;
         reader.seek(SeekFrom::Current(8))?;
         let file_size = reader.read_le_to_u32()?;
@@ -92,10 +90,7 @@ impl ISM2 {
                 }
                 0x0B => {
                     // Model Data
-                    sections.push(Section::ModelData(ModelData::import(
-                        reader,
-                        &string_table,
-                    )?));
+                    sections.push(Section::ModelData(ModelData::import(reader)?));
                 }
                 _ => {}
             }
