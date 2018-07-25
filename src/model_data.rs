@@ -91,13 +91,77 @@ impl SubSection {
 }
 
 impl Vertices {
-    pub fn import<R: Read>(reader: &mut R) -> Result<Vertices> {
-        unimplemented!();
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<Vertices> {
+        reader.check_magic_number(&[0x59, 0, 0, 0, 0x1C, 0, 0, 0])?;  // Magic Number + 0x1C
+        let nb_sub_sections = reader.read_le_to_u32()?;
+        reader.seek(SeekFrom::Current(4))?;
+        let nb_vertices = reader.read_le_to_u32()?;
+        reader.seek(SeekFrom::Current(8))?;
+        let mut offsets = Vec::with_capacity(nb_sub_sections as usize);
+        for _ in 0..nb_sub_sections {
+            offsets.push(reader.read_le_to_u32()?);
+        }
+        let mut sub_sections = Vec::with_capacity(nb_sub_sections as usize);
+        for o in offsets {
+            reader.seek(SeekFrom::Start(u64::from(o)))?;
+            sub_sections.push(VerticesSubSection::import(reader, &nb_vertices)?);
+        }
+        Ok(Vertices {
+            nb_vertices,
+            sub_sections
+        })
+    }
+}
+
+impl VerticesSubSection {
+    pub fn import<R: Read + Seek>(reader: &mut R, nb_vertices: &u32) -> Result<VerticesSubSection> {
+        let magic_number = reader.read_le_to_u32()?;
+        reader.seek(SeekFrom::Current(-4))?;
+        Ok(match magic_number {
+            0x00 => VerticesSubSection::Unnamed00,
+            0x02 => VerticesSubSection::Unnamed02,
+            0x0E => VerticesSubSection::Unnamed0E,
+            0x03 => VerticesSubSection::Data(Data::import(reader, nb_vertices)?),
+            x => return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
+                magic_number_section: magic_number,
+                magic_number_sub_section: x
+            }))
+        })
+    }
+}
+
+impl Data {
+    pub fn import<R: Read + Seek>(reader: &mut R, nb_vertices: &u32) -> Result<Data> {
+        reader.check_magic_number(&[0x03, 0, 0, 0, 0x4, 0, 0, 0, 0x3, 0, 0, 0, 0x20, 0, 0, 0, 0x1C, 0, 0, 0])?;
+        let buffer_offset = reader.read_le_to_u32()?;
+        reader.seek(SeekFrom::Start(u64::from(buffer_offset)))?;
+        let mut vertices = Vec::with_capacity(*nb_vertices as usize);
+        for _ in 0..*nb_vertices {
+            vertices.push(Vertex::import(reader)?);
+        }
+        Ok(Data {
+            vertices
+        })
+    }
+}
+
+impl Vertex {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<Vertex> {
+        let position_coordinates = [reader.read_le_to_f32()?, reader.read_le_to_f32()?, reader.read_le_to_f32()?];
+        reader.seek(SeekFrom::Current(0x06))?;
+        let texture_coordinate_u = f16::from_bits(reader.read_le_to_u16()?);
+        reader.seek(SeekFrom::Current(0x06))?;
+        let texture_coordinate_v = f16::from_bits(reader.read_le_to_u16()?);
+        Ok(Vertex {
+            position_coordinates,
+            texture_coordinates: [texture_coordinate_u, texture_coordinate_v]
+        })
     }
 }
 
 impl Faces {
     pub fn import<R: Read>(reader: &mut R) -> Result<Faces> {
+        reader.check_magic_number(&[0x46, 0, 0, 0])?;
         unimplemented!();
     }
 }
