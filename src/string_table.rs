@@ -1,7 +1,7 @@
-use std::io::{Read, Seek, SeekFrom};
 use ez_io::ReadE;
-use Result;
 use magic_number::check_magic_number;
+use std::io::{Read, Seek, SeekFrom};
+use Result;
 
 /// Reads a String Table from a file and returns a vector containing all entries, preserving the original indices.
 pub fn import_strings_table<R: Read + Seek>(reader: &mut R) -> Result<Vec<String>> {

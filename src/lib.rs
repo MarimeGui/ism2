@@ -117,5 +117,3 @@ impl SectionInfo {
         })
     }
 }
-
-
