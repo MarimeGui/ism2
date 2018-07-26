@@ -29,6 +29,8 @@ pub enum VerticesSubSection {
     Unnamed02,
     Unnamed0E,
     Data(VerticesDataBuffer),
+    Unnamed07,
+    Unnamed01
 }
 
 pub struct VerticesDataBuffer {
@@ -96,7 +98,7 @@ impl SubSection {
             0x6E => SubSection::Unnamed6E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: magic_number,
+                    magic_number_section: 0x0A,
                     magic_number_sub_section: x,
                 }))
             }
@@ -132,14 +134,15 @@ impl VerticesSubSection {
         let magic_number = reader.read_le_to_u32()?;
         reader.seek(SeekFrom::Current(-4))?;
         Ok(match magic_number {
-            // Might want to add 0x07 and 0x01
             0x00 => VerticesSubSection::Unnamed00,
             0x02 => VerticesSubSection::Unnamed02,
             0x0E => VerticesSubSection::Unnamed0E,
             0x03 => VerticesSubSection::Data(VerticesDataBuffer::import(reader, nb_vertices)?),
+            0x07 => VerticesSubSection::Unnamed07,
+            0x01 => VerticesSubSection::Unnamed01,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: magic_number,
+                    magic_number_section: 0x59,
                     magic_number_sub_section: x,
                 }))
             }
@@ -211,7 +214,7 @@ impl FacesSubSection {
             0x6E => FacesSubSection::Unnamed6E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: magic_number,
+                    magic_number_section: 0x46,
                     magic_number_sub_section: x,
                 }))
             }
