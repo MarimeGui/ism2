@@ -7,7 +7,7 @@ use clap::{App, Arg};
 use ez_io::WriteE;
 use ism2::{
     joint_definition::JointAttribute, joint_definition::JointDefinitionSubSection,
-    joint_definition::JointSubSection, model_data::ShapeSubSection, model_data::SubSection,
+    joint_definition::JointSubSection, model_data::MeshSubSection, model_data::SubSection,
     model_data::VerticesSubSection, ISM2, Section,
 };
 use my_gltf::{
@@ -241,7 +241,7 @@ fn main() {
                         }
 
                         // Shape
-                        SubSection::Shape(faces) => {
+                        SubSection::Mesh(faces) => {
                             // Create the file and size counter
                             let mut shape_file = File::create(
                                 output_path.join(format!("shape_{}.bin", shape_counter)),
@@ -249,7 +249,7 @@ fn main() {
                             let mut shape_file_size = 0usize;
                             for sub_section in faces.sub_sections {
                                 match sub_section {
-                                    ShapeSubSection::Faces(data) => {
+                                    MeshSubSection::Faces(data) => {
                                         // Write each face to the file
                                         for face in data.faces {
                                             shape_file.write_le_to_u16(face.points.0).unwrap();
