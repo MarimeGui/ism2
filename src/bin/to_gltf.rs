@@ -78,30 +78,32 @@ fn main() {
                                 match vertices_sub_section {
                                     // Vertices Data Buffer
                                     VerticesSubSection::Data(data) => {
+                                        // Create the position file, the min and max variable and the size variable
                                         let mut vertices_positions_file =
                                             File::create(
                                                 output_path.join("vertices_positions.bin"),
                                             ).unwrap();
-                                        let mut vertices_positions_min_max: ((f32, f32), (f32, f32), (f32, f32)); // X, Y, Z -> Min, Max
+                                        let mut vertices_positions_min_max: ((f32, f32), (f32, f32), (f32, f32)) = (
+                                            (
+                                                data.vertices[0].position_coordinates[0],
+                                                data.vertices[0].position_coordinates[0],
+                                            ),
+                                            (
+                                                data.vertices[0].position_coordinates[1],
+                                                data.vertices[0].position_coordinates[1],
+                                            ),
+                                            (
+                                                data.vertices[0].position_coordinates[2],
+                                                data.vertices[0].position_coordinates[2],
+                                            ),
+                                        ); // X, Y, Z -> Min, Max
                                         let mut vertices_positions_file_len = 0usize;
+                                        // Create the UV Maps file and the size counter
                                         let mut vertices_uv_maps_file =
                                             File::create(output_path.join("vertices_uv_maps.bin"))
                                                 .unwrap();
                                         let mut vertices_uv_maps_len = 0usize;
-                                        vertices_positions_min_max = (
-                                            (
-                                                data.vertices[0].position_coordinates[0],
-                                                data.vertices[0].position_coordinates[0],
-                                            ),
-                                            (
-                                                data.vertices[0].position_coordinates[1],
-                                                data.vertices[0].position_coordinates[1],
-                                            ),
-                                            (
-                                                data.vertices[0].position_coordinates[2],
-                                                data.vertices[0].position_coordinates[2],
-                                            ),
-                                        );
+                                        // For each vertex
                                         for vertex in data.vertices {
                                             // Write position
                                             vertices_positions_file
@@ -176,7 +178,7 @@ fn main() {
                                                 .unwrap();
                                             vertices_uv_maps_len += 8;
                                         }
-                                        // Write Positions
+                                        // Add Positions to glTF
                                         let buffer_id = buffers.len();
                                         buffers.push(Buffer {
                                             byte_length: vertices_positions_file_len,
@@ -206,7 +208,7 @@ fn main() {
                                                 (vertices_positions_min_max.2).1,
                                             ]),
                                         });
-                                        // Write UV Maps
+                                        // Add UV Maps to glTF
                                         let buffer_id = buffers.len();
                                         buffers.push(Buffer {
                                             byte_length: vertices_uv_maps_len,
@@ -236,7 +238,7 @@ fn main() {
 
                         // Shape
                         SubSection::Shape(faces) => {
-                            println!("Face {}", shape_counter);
+                            // Create the file and size counter
                             let mut shape_file = File::create(
                                 output_path.join(format!("shape_{}.bin", shape_counter)),
                             ).unwrap();
@@ -244,6 +246,7 @@ fn main() {
                             for sub_section in faces.sub_sections {
                                 match sub_section {
                                     ShapeSubSection::Faces(data) => {
+                                        // Write each face to the file
                                         for face in data.faces {
                                             shape_file.write_le_to_u16(face.points.0).unwrap();
                                             shape_file.write_le_to_u16(face.points.1).unwrap();
@@ -254,6 +257,7 @@ fn main() {
                                     _ => {}
                                 }
                             }
+                            // Add node with this model as an attribute, also add it to the list of nodes that composes the scene
                             scene_nodes.push(nodes.len());
                             nodes.push(Node {
                                 mesh: Some(shape_counter),
@@ -264,6 +268,7 @@ fn main() {
                                 rotation: None,
                                 scale: None,
                             });
+                            // Add the shape to the glTF
                             let buffer_id = buffers.len();
                             buffers.push(Buffer {
                                 byte_length: shape_file_size,
@@ -309,9 +314,12 @@ fn main() {
                             });
                             shape_counter += 1;
                         }
+
+                        // Not handling everything for now
                         _ => {}
                     }
                 }
+                // Add the scene to the glTF
                 scenes.push(Scene {
                     nodes: Some(scene_nodes),
                 });
