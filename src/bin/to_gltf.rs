@@ -6,18 +6,22 @@ extern crate my_gltf;
 use clap::{App, Arg};
 use ez_io::WriteE;
 use ism2::{
-    model_data::ShapeSubSection, model_data::SubSection, model_data::VerticesSubSection, ISM2,
-    Section,
+    joint_definition::JointAttribute, joint_definition::JointDefinitionSubSection,
+    joint_definition::JointSubSection, model_data::ShapeSubSection, model_data::SubSection,
+    model_data::VerticesSubSection, ISM2, Section,
 };
 use my_gltf::{
     accessors::Accessor, asset::Asset, buffer_views::BufferView, buffers::Buffer, meshes::Mesh,
     meshes::Primitive, nodes::Node, scenes::Scene, GlTF,
 };
 use std::collections::HashMap;
+use std::f32::consts::PI;
 use std::fs::{create_dir_all, File};
 use std::io::BufReader;
 use std::path::Path;
 use std::process::exit;
+
+const DEG_TO_RAD: f32 = PI / 180f32;
 
 fn main() {
     let matches = App::new("ISM2 to GLTF Converter")
@@ -62,6 +66,7 @@ fn main() {
     let mut meshes = Vec::new();
 
     // Sections
+    let mut scene_nodes = Vec::new();
     for section in ism.sections {
         match section {
             // Model Data
@@ -69,7 +74,6 @@ fn main() {
                 let mut shape_counter = 0usize;
                 let mut vertices_positions_accessor_id: usize = 0usize;
                 let mut vertices_uv_accessor_id: usize = 0usize;
-                let mut scene_nodes = Vec::new();
                 for sub_section in model_data.zero_a.sub_sections {
                     match sub_section {
                         // Vertices
@@ -320,13 +324,158 @@ fn main() {
                     }
                 }
                 // Add the scene to the glTF
-                scenes.push(Scene {
-                    nodes: Some(scene_nodes),
-                });
+            }
+            // Joint Definitions
+            Section::JointDefinition(joint_definition) => {
+                let mut joints_name: Vec<String> = Vec::new();
+                let mut joints_translation: Vec<Option<[f32; 3]>> = Vec::new();
+                let mut joints_rotation: Vec<Option<[f32; 4]>> = Vec::new();
+                let mut children: Vec<Vec<usize>> = Vec::new();
+                let mut root_nodes: Vec<usize> = Vec::new();
+                let mut id = 0usize;
+                for sub_section in joint_definition.sub_sections {
+                    match sub_section {
+                        JointDefinitionSubSection::Joint(joint) => {
+                            joints_name.push(joint.name);
+                            children.push(Vec::new());
+                            match joint.parent_index {
+                                None => {
+                                    root_nodes.push(id)
+                                },
+                                Some(p) => match children.get_mut(p) {
+                                    Some(ref mut c) => {
+                                        c.push(id)
+                                    },
+                                    None => panic!("Missing parent"),
+                                },
+                            }
+                            for sub_section in joint.sub_sections {
+                                match sub_section {
+                                    JointSubSection::Offsets(offsets) => {
+                                        let mut transform = None;
+                                        let mut rotation_euler: Option<[f32; 3]> = None;
+                                        for attribute in offsets.attributes {
+                                            match attribute {
+                                                JointAttribute::Transform(t) => {
+                                                    transform = Some([t.x, t.y, t.z]);
+                                                }
+                                                JointAttribute::EulerRoll(r) => {
+                                                    match rotation_euler {
+                                                        Some(ref mut h) => {
+                                                            h[0] = r.angle * DEG_TO_RAD
+                                                        }
+                                                        None => {
+                                                            rotation_euler = Some([
+                                                                r.angle * DEG_TO_RAD,
+                                                                0f32,
+                                                                0f32,
+                                                            ])
+                                                        }
+                                                    }
+                                                }
+                                                JointAttribute::EulerPitch(p) => {
+                                                    match rotation_euler {
+                                                        Some(ref mut h) => {
+                                                            h[1] = p.angle * DEG_TO_RAD
+                                                        }
+                                                        None => {
+                                                            rotation_euler = Some([
+                                                                0f32,
+                                                                p.angle * DEG_TO_RAD,
+                                                                0f32,
+                                                            ])
+                                                        }
+                                                    }
+                                                }
+                                                JointAttribute::EulerYaw(y) => match rotation_euler
+                                                {
+                                                    Some(ref mut h) => h[2] = y.angle * DEG_TO_RAD,
+                                                    None => {
+                                                        rotation_euler =
+                                                            Some([0f32, 0f32, y.angle * DEG_TO_RAD])
+                                                    }
+                                                },
+                                                _ => {}
+                                            }
+                                        }
+                                        joints_translation.push(transform);
+                                        match rotation_euler {
+                                            None => joints_rotation.push(None),
+                                            Some(r) => {
+                                                let yaw = r[2];
+                                                let roll = r[0];
+                                                let pitch = r[1];
+                                                let cy = (yaw * 0.5).cos();
+                                                let sy = (yaw * 0.5).sin();
+                                                let cr = (roll * 0.5).cos();
+                                                let sr = (roll * 0.5).sin();
+                                                let cp = (pitch * 0.5).cos();
+                                                let sp = (pitch * 0.5).sin();
+                                                let w = cy * cr * cp + sy * sr * sp;
+                                                let x = cy * sr * cp - sy * cr * sp;
+                                                let y = cy * cr * sp + sy * sr * cp;
+                                                let z = sy * cr * cp - cy * sr * sp;
+                                                let rotation_quaternion = [x, y, z, w];
+                                                joints_rotation.push(Some(rotation_quaternion));
+                                            }
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            id += 1;
+                        }
+                        _ => {}
+                    }
+                }
+                // let mut joint_ids = Vec::new();
+                let start = nodes.len();
+                for i in 0..joints_name.len() {
+                    if root_nodes.contains(&i) {
+                        scene_nodes.push(nodes.len());
+                    }
+                    let ch = match children.get(i) {
+                        Some(c) => {
+                            if !c.is_empty() {
+                                let mut fixed = Vec::new();
+                                for id in c {
+                                    fixed.push(id + start);
+                                }
+                                Some(fixed)
+                            } else {
+                                None
+                            }
+                        }
+                        None => panic!(),
+                    };
+                    // joint_ids.push(counter + i);
+                    nodes.push(Node {
+                        mesh: None,
+                        translation: match joints_translation.get(i) {
+                            Some(t) => t.clone(),
+                            None => panic!(),
+                        },
+                        name: match joints_name.get(i) {
+                            Some(n) => Some(n.clone()),
+                            None => panic!(),
+                        },
+                        rotation: match joints_rotation.get(i) {
+                            Some(r) => r.clone(),
+                            None => panic!(),
+                        },
+                        scale: None,
+                        children: ch,
+                        skin: None,
+                    });
+                }
             }
             _ => {}
         }
     }
+
+    scenes.push(Scene {
+        nodes: Some(scene_nodes),
+    });
 
     // Export glTF
     let gltf = GlTF {

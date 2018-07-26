@@ -31,6 +31,7 @@ pub enum VerticesSubSection {
     Data(VerticesDataBuffer),
     Unnamed07,
     Unnamed01,
+    Unnamed08,
 }
 
 pub struct VerticesDataBuffer {
@@ -140,6 +141,7 @@ impl VerticesSubSection {
             0x03 => VerticesSubSection::Data(VerticesDataBuffer::import(reader, nb_vertices)?),
             0x07 => VerticesSubSection::Unnamed07,
             0x01 => VerticesSubSection::Unnamed01,
+            0x08 => VerticesSubSection::Unnamed08,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
                     magic_number_section: 0x59,

@@ -83,10 +83,10 @@ impl ISM2 {
                 }
                 0x32 => {
                     // Joint Extra Information
-                    sections.push(Section::JointExtra(JointExtra::import(
-                        reader,
-                        &string_table,
-                    )?));
+                    // sections.push(Section::JointExtra(JointExtra::import(
+                    //     reader,
+                    //     &string_table,
+                    // )?));
                 }
                 0x0B => {
                     // Model Data
