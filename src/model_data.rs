@@ -15,7 +15,7 @@ pub struct Unnamed0A {
 
 pub enum SubSection {
     Vertices(Vertices),
-    Faces(Faces),
+    Shape(Shape),
     Unnamed6E,
 }
 
@@ -42,23 +42,22 @@ pub struct Vertex {
     pub texture_coordinates: [f16; 2],
 }
 
-pub struct Faces {
-    // Rename to shape
+pub struct Shape {
     pub nb_faces: u32,
-    pub sub_sections: Vec<FacesSubSection>,
+    pub sub_sections: Vec<ShapeSubSection>,
 }
 
-pub enum FacesSubSection {
-    Data(FacesDataBuffer),
+pub enum ShapeSubSection {
+    Faces(Faces),
     Unnamed6E,
 }
 
-pub struct FacesDataBuffer {
+pub struct Faces {
     pub faces: Vec<Face>,
 }
 
 pub struct Face {
-    pub points: [u16; 3],
+    pub points: (u16, u16, u16),
 }
 
 impl ModelData {
@@ -95,7 +94,7 @@ impl SubSection {
         reader.seek(SeekFrom::Current(-4))?;
         Ok(match magic_number {
             0x59 => SubSection::Vertices(Vertices::import(reader)?),
-            0x46 => SubSection::Faces(Faces::import(reader)?),
+            0x46 => SubSection::Shape(Shape::import(reader)?),
             0x6E => SubSection::Unnamed6E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
@@ -185,8 +184,8 @@ impl Vertex {
     }
 }
 
-impl Faces {
-    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<Faces> {
+impl Shape {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<Shape> {
         reader.check_magic_number(&[0x46, 0, 0, 0, 0x1C, 0, 0, 0])?;
         let nb_sub_sections = reader.read_le_to_u32()?;
         reader.seek(SeekFrom::Current(0x0C))?;
@@ -198,22 +197,22 @@ impl Faces {
         let mut sub_sections = Vec::with_capacity(nb_sub_sections as usize);
         for o in offsets {
             reader.seek(SeekFrom::Start(u64::from(o)))?;
-            sub_sections.push(FacesSubSection::import(reader, &nb_faces)?);
+            sub_sections.push(ShapeSubSection::import(reader, &nb_faces)?);
         }
-        Ok(Faces {
+        Ok(Shape {
             nb_faces,
             sub_sections,
         })
     }
 }
 
-impl FacesSubSection {
-    pub fn import<R: Read + Seek>(reader: &mut R, nb_faces: &u32) -> Result<FacesSubSection> {
+impl ShapeSubSection {
+    pub fn import<R: Read + Seek>(reader: &mut R, nb_faces: &u32) -> Result<ShapeSubSection> {
         let magic_number = reader.read_le_to_u32()?;
         reader.seek(SeekFrom::Current(-4))?;
         Ok(match magic_number {
-            0x45 => FacesSubSection::Data(FacesDataBuffer::import(reader, nb_faces)?),
-            0x6E => FacesSubSection::Unnamed6E,
+            0x45 => ShapeSubSection::Faces(Faces::import(reader, nb_faces)?),
+            0x6E => ShapeSubSection::Unnamed6E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
                     magic_number_section: 0x46,
@@ -224,26 +223,26 @@ impl FacesSubSection {
     }
 }
 
-impl FacesDataBuffer {
-    pub fn import<R: Read + Seek>(reader: &mut R, nb_faces: &u32) -> Result<FacesDataBuffer> {
+impl Faces {
+    pub fn import<R: Read + Seek>(reader: &mut R, nb_faces: &u32) -> Result<Faces> {
         reader.check_magic_number(&[0x45, 0, 0, 0, 0x14, 0, 0, 0])?;
         reader.seek(SeekFrom::Current(0x0C))?;
         let mut faces = Vec::with_capacity(*nb_faces as usize);
         for _ in 0..*nb_faces {
             faces.push(Face::import(reader)?);
         }
-        Ok(FacesDataBuffer { faces })
+        Ok(Faces { faces })
     }
 }
 
 impl Face {
     pub fn import<R: Read>(reader: &mut R) -> Result<Face> {
         Ok(Face {
-            points: [
+            points: (
                 reader.read_le_to_u16()?,
                 reader.read_le_to_u16()?,
                 reader.read_le_to_u16()?,
-            ],
+            ),
         })
     }
 }

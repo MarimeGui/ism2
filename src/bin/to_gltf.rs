@@ -6,23 +6,12 @@ extern crate my_gltf;
 use clap::{App, Arg};
 use ez_io::WriteE;
 use ism2::{
-    model_data::FacesSubSection, model_data::SubSection, model_data::VerticesSubSection, ISM2,
+    model_data::ShapeSubSection, model_data::SubSection, model_data::VerticesSubSection, ISM2,
     Section,
 };
 use my_gltf::{
-    accessors::Accessor,
-    asset::Asset,
-    buffer_views::BufferView,
-    buffers::Buffer,
-    images::Image,
-    materials::{BaseColorTexture, Material, PbrMetallicRoughness},
-    meshes::Mesh,
-    meshes::Primitive,
-    nodes::Node,
-    scenes::Scene,
-    skins::Skin,
-    textures::Texture,
-    GlTF,
+    accessors::Accessor, asset::Asset, buffer_views::BufferView, buffers::Buffer, meshes::Mesh,
+    meshes::Primitive, nodes::Node, scenes::Scene, GlTF,
 };
 use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
@@ -246,7 +235,7 @@ fn main() {
                         }
 
                         // Shape
-                        SubSection::Faces(faces) => {
+                        SubSection::Shape(faces) => {
                             println!("Face {}", shape_counter);
                             let mut shape_file = File::create(
                                 output_path.join(format!("shape_{}.bin", shape_counter)),
@@ -254,11 +243,11 @@ fn main() {
                             let mut shape_file_size = 0usize;
                             for sub_section in faces.sub_sections {
                                 match sub_section {
-                                    FacesSubSection::Data(data) => {
+                                    ShapeSubSection::Faces(data) => {
                                         for face in data.faces {
-                                            shape_file.write_le_to_u16(face.points[0]).unwrap();
-                                            shape_file.write_le_to_u16(face.points[1]).unwrap();
-                                            shape_file.write_le_to_u16(face.points[2]).unwrap();
+                                            shape_file.write_le_to_u16(face.points.0).unwrap();
+                                            shape_file.write_le_to_u16(face.points.1).unwrap();
+                                            shape_file.write_le_to_u16(face.points.2).unwrap();
                                             shape_file_size += 6;
                                         }
                                     }

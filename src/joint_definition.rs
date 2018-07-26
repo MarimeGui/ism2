@@ -72,6 +72,7 @@ pub struct JointYaw {
 }
 
 impl JointDefinition {
+    #[allow(unused_variables)]
     pub fn import<R: Read + Seek>(
         reader: &mut R,
         strings_table: &[String],
