@@ -339,13 +339,9 @@ fn main() {
                             joints_name.push(joint.name);
                             children.push(Vec::new());
                             match joint.parent_index {
-                                None => {
-                                    root_nodes.push(id)
-                                },
+                                None => root_nodes.push(id),
                                 Some(p) => match children.get_mut(p) {
-                                    Some(ref mut c) => {
-                                        c.push(id)
-                                    },
+                                    Some(ref mut c) => c.push(id),
                                     None => panic!("Missing parent"),
                                 },
                             }

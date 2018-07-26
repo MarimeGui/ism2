@@ -15,7 +15,7 @@ pub struct Unnamed0A {
 
 pub enum SubSection {
     Vertices(Vertices),
-    Shape(Shape),
+    Mesh(Mesh),
     Unnamed6E,
 }
 
@@ -43,12 +43,12 @@ pub struct Vertex {
     pub texture_coordinates: [f16; 2],
 }
 
-pub struct Shape {
+pub struct Mesh {
     pub nb_faces: u32,
-    pub sub_sections: Vec<ShapeSubSection>,
+    pub sub_sections: Vec<MeshSubSection>,
 }
 
-pub enum ShapeSubSection {
+pub enum MeshSubSection {
     Faces(Faces),
     Unnamed6E,
 }
@@ -95,7 +95,7 @@ impl SubSection {
         reader.seek(SeekFrom::Current(-4))?;
         Ok(match magic_number {
             0x59 => SubSection::Vertices(Vertices::import(reader)?),
-            0x46 => SubSection::Shape(Shape::import(reader)?),
+            0x46 => SubSection::Mesh(Mesh::import(reader)?),
             0x6E => SubSection::Unnamed6E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
@@ -186,8 +186,8 @@ impl Vertex {
     }
 }
 
-impl Shape {
-    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<Shape> {
+impl Mesh {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<Mesh> {
         reader.check_magic_number(&[0x46, 0, 0, 0, 0x1C, 0, 0, 0])?;
         let nb_sub_sections = reader.read_le_to_u32()?;
         reader.seek(SeekFrom::Current(0x0C))?;
@@ -199,22 +199,22 @@ impl Shape {
         let mut sub_sections = Vec::with_capacity(nb_sub_sections as usize);
         for o in offsets {
             reader.seek(SeekFrom::Start(u64::from(o)))?;
-            sub_sections.push(ShapeSubSection::import(reader, &nb_faces)?);
+            sub_sections.push(MeshSubSection::import(reader, &nb_faces)?);
         }
-        Ok(Shape {
+        Ok(Mesh {
             nb_faces,
             sub_sections,
         })
     }
 }
 
-impl ShapeSubSection {
-    pub fn import<R: Read + Seek>(reader: &mut R, nb_faces: &u32) -> Result<ShapeSubSection> {
+impl MeshSubSection {
+    pub fn import<R: Read + Seek>(reader: &mut R, nb_faces: &u32) -> Result<MeshSubSection> {
         let magic_number = reader.read_le_to_u32()?;
         reader.seek(SeekFrom::Current(-4))?;
         Ok(match magic_number {
-            0x45 => ShapeSubSection::Faces(Faces::import(reader, nb_faces)?),
-            0x6E => ShapeSubSection::Unnamed6E,
+            0x45 => MeshSubSection::Faces(Faces::import(reader, nb_faces)?),
+            0x6E => MeshSubSection::Unnamed6E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
                     magic_number_section: 0x46,
