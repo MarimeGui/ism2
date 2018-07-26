@@ -4,10 +4,7 @@ use Result;
 pub struct JointExtra {}
 
 impl JointExtra {
-    pub fn import<R: Read + Seek>(
-        reader: &mut R,
-        strings_table: &Vec<String>,
-    ) -> Result<JointExtra> {
+    pub fn import<R: Read + Seek>(reader: &mut R, strings_table: &[String]) -> Result<JointExtra> {
         unimplemented!();
     }
 }

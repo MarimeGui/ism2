@@ -30,7 +30,7 @@ pub enum VerticesSubSection {
     Unnamed0E,
     Data(VerticesDataBuffer),
     Unnamed07,
-    Unnamed01
+    Unnamed01,
 }
 
 pub struct VerticesDataBuffer {
@@ -43,6 +43,7 @@ pub struct Vertex {
 }
 
 pub struct Faces {
+    // Rename to shape
     pub nb_faces: u32,
     pub sub_sections: Vec<FacesSubSection>,
 }
@@ -176,6 +177,7 @@ impl Vertex {
         let texture_coordinate_u = f16::from_bits(reader.read_le_to_u16()?);
         reader.seek(SeekFrom::Current(0x06))?;
         let texture_coordinate_v = f16::from_bits(reader.read_le_to_u16()?);
+        reader.seek(SeekFrom::Current(0x04))?;
         Ok(Vertex {
             position_coordinates,
             texture_coordinates: [texture_coordinate_u, texture_coordinate_v],
