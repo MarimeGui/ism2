@@ -40,6 +40,7 @@ pub struct Joint {
     pub name: String,
     pub parent_index: Option<usize>,
     pub sub_sections: Vec<JointSubSection>,
+    pub in_vertex_id: u32,
 }
 
 pub enum JointSubSection {
@@ -52,22 +53,22 @@ pub struct JointAttributesOffsets {
 }
 
 pub enum JointAttribute {
-    Transform(JointTransform),
-    EulerRoll(JointRoll),
-    EulerPitch(JointPitch),
-    EulerYaw(JointYaw),
-    Unnamed5D,
-    Unnamed5E,
-    Unnamed5F,
-    Unnamed15,
-    Unnamed70,
-    Unnamed71,
-    Unnamed72,
-    Unnamed73,
-    Unnamed74,
-    Unnamed75,
-    Unnamed76,
-    Unnamed77,
+    Translate(JointTranslate),
+    Scale(JointScale),
+    RotateX(JointRotateX),
+    RotateY(JointRotateY),
+    RotateZ(JointRotateZ),
+    JointOrientX(JointOrientX),
+    JointOrientY(JointOrientY),
+    JointOrientZ(JointOrientZ),
+    CollisionFlag,
+    CollisionRadius,
+    PhysicsFlag,
+    PhysicsRadius,
+    PhysicsCost,
+    PhysicsMass,
+    PhysicsExpand,
+    PhysicsShapeMemory,
     Unnamed7A,
     Unnamed7B,
     Unnamed7C,
@@ -75,27 +76,51 @@ pub enum JointAttribute {
     Unnamed7E,
 }
 
-pub struct JointTransform {
+pub struct JointTranslate {
     // 0x14
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
 
-pub struct JointRoll {
+pub struct JointScale {
+    // 0x15
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+pub struct JointRotateX {
+    // 0x5D
+    pub angle: f32,
+}
+
+pub struct JointRotateY {
+    // 0x5E
+    pub angle: f32,
+}
+
+pub struct JointRotateZ {
+    // 0x5F
+    pub angle: f32,
+}
+
+pub struct JointOrientX {
     // 0x67
     pub angle: f32,
 }
 
-pub struct JointPitch {
+pub struct JointOrientY {
     // 0x68
     pub angle: f32,
 }
 
-pub struct JointYaw {
+pub struct JointOrientZ {
     // 0x69
     pub angle: f32,
 }
+
+// pub struct Research {}
 
 impl JointDefinition {
     // Nodes ??
@@ -179,7 +204,9 @@ impl Joint {
                 None => panic!("This should not happen"),
             }
         };
-        reader.seek(SeekFrom::Current(0x20))?;
+        reader.seek(SeekFrom::Current(12))?;
+        let in_vertex_id = reader.read_le_to_u32()?;
+        reader.seek(SeekFrom::Current(16))?;
         let mut offsets = Vec::with_capacity(nb_sub_sections as usize);
         for _ in 0..nb_sub_sections {
             offsets.push(reader.read_le_to_u32()?);
@@ -193,6 +220,7 @@ impl Joint {
             name,
             parent_index,
             sub_sections,
+            in_vertex_id,
         })
     }
 }
@@ -236,22 +264,22 @@ impl JointAttribute {
         let magic_number = reader.read_le_to_u32()?;
         reader.seek(SeekFrom::Current(-4))?;
         Ok(match magic_number {
-            0x14 => JointAttribute::Transform(JointTransform::import(reader)?),
-            0x67 => JointAttribute::EulerRoll(JointRoll::import(reader)?),
-            0x68 => JointAttribute::EulerPitch(JointPitch::import(reader)?),
-            0x69 => JointAttribute::EulerYaw(JointYaw::import(reader)?),
-            0x5D => JointAttribute::Unnamed5D,
-            0x5E => JointAttribute::Unnamed5E,
-            0x5F => JointAttribute::Unnamed5F,
-            0x15 => JointAttribute::Unnamed15,
-            0x70 => JointAttribute::Unnamed70,
-            0x71 => JointAttribute::Unnamed71,
-            0x72 => JointAttribute::Unnamed72,
-            0x73 => JointAttribute::Unnamed73,
-            0x74 => JointAttribute::Unnamed74,
-            0x75 => JointAttribute::Unnamed75,
-            0x76 => JointAttribute::Unnamed76,
-            0x77 => JointAttribute::Unnamed77,
+            0x14 => JointAttribute::Translate(JointTranslate::import(reader)?),
+            0x15 => JointAttribute::Scale(JointScale::import(reader)?),
+            0x5D => JointAttribute::RotateX(JointRotateX::import(reader)?),
+            0x5E => JointAttribute::RotateY(JointRotateY::import(reader)?),
+            0x5F => JointAttribute::RotateZ(JointRotateZ::import(reader)?),
+            0x67 => JointAttribute::JointOrientX(JointOrientX::import(reader)?),
+            0x68 => JointAttribute::JointOrientY(JointOrientY::import(reader)?),
+            0x69 => JointAttribute::JointOrientZ(JointOrientZ::import(reader)?),
+            0x70 => JointAttribute::CollisionFlag,
+            0x71 => JointAttribute::CollisionRadius,
+            0x72 => JointAttribute::PhysicsFlag,
+            0x73 => JointAttribute::PhysicsRadius,
+            0x74 => JointAttribute::PhysicsCost,
+            0x75 => JointAttribute::PhysicsMass,
+            0x76 => JointAttribute::PhysicsExpand,
+            0x77 => JointAttribute::PhysicsShapeMemory,
             0x7A => JointAttribute::Unnamed7A,
             0x7B => JointAttribute::Unnamed7B,
             0x7C => JointAttribute::Unnamed7C,
@@ -267,40 +295,87 @@ impl JointAttribute {
     }
 }
 
-impl JointTransform {
-    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointTransform> {
+impl JointTranslate {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointTranslate> {
         reader.check_magic_number(&[0x14, 0, 0, 0])?;
         reader.seek(SeekFrom::Current(4))?;
         let x = reader.read_le_to_f32()?;
         let y = reader.read_le_to_f32()?;
         let z = reader.read_le_to_f32()?;
-        Ok(JointTransform { x, y, z })
+        Ok(JointTranslate { x, y, z })
     }
 }
 
-impl JointRoll {
-    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointRoll> {
+impl JointScale {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointScale> {
+        reader.check_magic_number(&[0x15, 0, 0, 0])?;
+        reader.seek(SeekFrom::Current(4))?;
+        let x = reader.read_le_to_f32()?;
+        let y = reader.read_le_to_f32()?;
+        let z = reader.read_le_to_f32()?;
+        Ok(JointScale { x, y, z })
+    }
+}
+
+impl JointRotateX {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointRotateX> {
+        reader.check_magic_number(&[0x5D, 0, 0, 0])?;
+        reader.seek(SeekFrom::Current(16))?;
+        let angle = reader.read_le_to_f32()?;
+        Ok(JointRotateX { angle })
+    }
+}
+
+impl JointRotateY {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointRotateY> {
+        reader.check_magic_number(&[0x5E, 0, 0, 0])?;
+        reader.seek(SeekFrom::Current(16))?;
+        let angle = reader.read_le_to_f32()?;
+        Ok(JointRotateY { angle })
+    }
+}
+
+impl JointRotateZ {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointRotateZ> {
+        reader.check_magic_number(&[0x5F, 0, 0, 0])?;
+        reader.seek(SeekFrom::Current(16))?;
+        let angle = reader.read_le_to_f32()?;
+        Ok(JointRotateZ { angle })
+    }
+}
+
+impl JointOrientX {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointOrientX> {
         reader.check_magic_number(&[0x67, 0, 0, 0])?;
         reader.seek(SeekFrom::Current(16))?;
         let angle = reader.read_le_to_f32()?;
-        Ok(JointRoll { angle })
+        Ok(JointOrientX { angle })
     }
 }
 
-impl JointPitch {
-    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointPitch> {
+impl JointOrientY {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointOrientY> {
         reader.check_magic_number(&[0x68, 0, 0, 0])?;
         reader.seek(SeekFrom::Current(16))?;
         let angle = reader.read_le_to_f32()?;
-        Ok(JointPitch { angle })
+        Ok(JointOrientY { angle })
     }
 }
 
-impl JointYaw {
-    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointYaw> {
+impl JointOrientZ {
+    pub fn import<R: Read + Seek>(reader: &mut R) -> Result<JointOrientZ> {
         reader.check_magic_number(&[0x69, 0, 0, 0])?;
         reader.seek(SeekFrom::Current(16))?;
         let angle = reader.read_le_to_f32()?;
-        Ok(JointYaw { angle })
+        Ok(JointOrientZ { angle })
     }
 }
+
+// impl Research {
+//     pub fn import<R: Read + Seek>(reader: &mut R) -> Result<Research> {
+//         let o = reader.seek(SeekFrom::Current(0))?;
+//         let mn = reader.read_le_to_u32()?;
+//         println!("0x{:X} @ 0x{:X}", mn, o);
+//         Ok(Research {})
+//     }
+// }

@@ -30,6 +30,8 @@ pub enum ISM2ImportError {
     IO(IOError),
     MagicNumber(WrongMagicNumber),
     UnknownSubSection(UnknownSubSection),
+    NoAttributes,
+    UnrecognizedBufferType,
 }
 
 impl Error for ISM2ImportError {
@@ -38,6 +40,10 @@ impl Error for ISM2ImportError {
             ISM2ImportError::IO(ref e) => e.description(),
             ISM2ImportError::MagicNumber(ref e) => e.description(),
             ISM2ImportError::UnknownSubSection(ref e) => e.description(),
+            ISM2ImportError::NoAttributes => "No Attribute was specified for a Vertex Buffer",
+            ISM2ImportError::UnrecognizedBufferType => {
+                "Impossible to infer what type of buffer to read in Joint Extra"
+            }
         }
     }
 }
@@ -48,6 +54,10 @@ impl fmt::Display for ISM2ImportError {
             ISM2ImportError::IO(ref e) => e.fmt(f),
             ISM2ImportError::MagicNumber(ref e) => e.fmt(f),
             ISM2ImportError::UnknownSubSection(ref e) => e.fmt(f),
+            ISM2ImportError::NoAttributes => write!(f, "No Attributes in Vertices Buffer"),
+            ISM2ImportError::UnrecognizedBufferType => {
+                write!(f, "Impossible to infer type of buffer")
+            }
         }
     }
 }

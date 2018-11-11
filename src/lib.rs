@@ -6,6 +6,7 @@ pub mod joint_definition;
 pub mod joint_extra;
 pub mod model_data;
 pub mod string_table;
+pub mod texture_definition;
 
 use error::ISM2ImportError;
 use ez_io::{MagicNumberCheck, ReadE};
@@ -14,6 +15,7 @@ use joint_extra::JointExtra;
 use model_data::ModelData;
 use std::io::{Read, Seek, SeekFrom};
 use string_table::import_strings_table;
+use texture_definition::TextureDefinition;
 
 type Result<T> = std::result::Result<T, ISM2ImportError>;
 
@@ -36,6 +38,7 @@ pub enum Section {
     JointDefinition(JointDefinition),
     JointExtra(JointExtra),
     ModelData(ModelData),
+    TextureDefinition(TextureDefinition),
 }
 
 impl ISM2 {
@@ -83,14 +86,21 @@ impl ISM2 {
                 }
                 0x32 => {
                     // Joint Extra Information
-                    // sections.push(Section::JointExtra(JointExtra::import(
-                    //     reader,
-                    //     &string_table,
-                    // )?));
+                    sections.push(Section::JointExtra(JointExtra::import(
+                        reader,
+                        &string_table,
+                    )?));
                 }
                 0x0B => {
                     // Model Data
                     sections.push(Section::ModelData(ModelData::import(reader)?));
+                }
+                0x2E => {
+                    // Texture Definition
+                    sections.push(Section::TextureDefinition(TextureDefinition::import(
+                        reader,
+                        &string_table,
+                    )?));
                 }
                 _ => {}
             }
