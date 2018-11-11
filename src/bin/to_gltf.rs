@@ -532,7 +532,7 @@ fn main() {
     let mut accessors = Vec::new();
     let mut meshes = Vec::new();
     let mut materials = Vec::new();
-    let mut skins = Vec::new();
+    let mut skins = None;
     let mut images = Vec::new();
     let mut textures = Vec::new();
 
@@ -934,7 +934,8 @@ fn main() {
 
     // Create the skin
     if let Some(id) = joints_inv_accessor_id {
-        skins.push(Skin {
+        let mut to_add = Vec::new();
+        to_add.push(Skin {
             inverse_bind_matrices: Some(id),
             skeleton: root_node_id,
             name: None,
@@ -946,6 +947,7 @@ fn main() {
                 joints
             },
         });
+        skins = Some(to_add);
     }
 
     // Write Meshes to glTF file
@@ -1060,7 +1062,7 @@ fn main() {
         buffer_views: Some(buffer_views),
         accessors: Some(accessors),
         meshes: Some(meshes),
-        skins: Some(skins),
+        skins,
         materials: Some(materials),
         textures: Some(textures),
         images: Some(images),
