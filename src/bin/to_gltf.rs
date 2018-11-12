@@ -518,7 +518,8 @@ fn main() {
             }
             Section::TextureDefinition(td) => {
                 for texture in td.sub_sections {
-                    i_textures.push(texture.base_name);
+                    let test: Vec<&str> = texture.original_name.split(".").collect();
+                    i_textures.push(test[0].to_string());
                 }
             }
         }
@@ -655,7 +656,6 @@ fn main() {
         }
     }
     for tex_name in i_textures {
-        // Sometimes, the ISM2 file does not specify the correct name as the first parameter, this is a quick fix that will work for most files...
         // println!("Tex name: {}", tex_name);
         let in_tid = {
             let mut file = match File::open(
@@ -666,22 +666,11 @@ fn main() {
             ) {
                 Ok(f) => f,
                 Err(e) => if e.kind() == IOErrorKind::NotFound {
-                    match File::open(
-                        input_path
-                            .parent()
-                            .unwrap()
-                            .join(format!("texture/001/tex_c.tid")),
-                    ) {
-                        Ok(f) => f,
-                        Err(e) => {
-                            if e.kind() == IOErrorKind::NotFound {
-                                println!("/!\\ Failed to open texture '{}.tid', ignoring...", tex_name);
-                                continue;
-                            } else {
-                                panic!(e)
-                            }
-                        }
-                    }
+                    println!(
+                        "/!\\ Failed to open texture '{}.tid', ignoring...",
+                        tex_name
+                    );
+                    continue;
                 } else {
                     panic!(e)
                 },
