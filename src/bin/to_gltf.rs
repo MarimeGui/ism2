@@ -664,7 +664,7 @@ fn main() {
     for tex_name in i_textures {
         // println!("Tex name: {}", tex_name);
         let in_tid = {
-            let mut file = match File::open(
+            let file = match File::open(
                 input_path
                     .parent()
                     .unwrap()
