@@ -293,12 +293,14 @@ fn main() {
                 .help("ISM2 file to convert")
                 .required(true)
                 .index(1),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("OUTPUT")
                 .help("Folder name for output")
                 .required(true)
                 .index(2),
-        ).get_matches();
+        )
+        .get_matches();
 
     // Create relevant paths
     let input_str = matches.value_of("INPUT").unwrap();
@@ -622,25 +624,29 @@ fn main() {
                     *i_in_vertex_id_to_joint_id
                         .get(&u32::from(i_vertex_rig.joints.0))
                         .unwrap() as u8,
-                ).unwrap(); // Lossy
+                )
+                .unwrap(); // Lossy
             vertices_joints
                 .write_to_u8(
                     *i_in_vertex_id_to_joint_id
                         .get(&u32::from(i_vertex_rig.joints.1))
                         .unwrap() as u8,
-                ).unwrap(); // Lossy
+                )
+                .unwrap(); // Lossy
             vertices_joints
                 .write_to_u8(
                     *i_in_vertex_id_to_joint_id
                         .get(&u32::from(i_vertex_rig.joints.2))
                         .unwrap() as u8,
-                ).unwrap(); // Lossy
+                )
+                .unwrap(); // Lossy
             vertices_joints
                 .write_to_u8(
                     *i_in_vertex_id_to_joint_id
                         .get(&u32::from(i_vertex_rig.joints.3))
                         .unwrap() as u8,
-                ).unwrap(); // Lossy
+                )
+                .unwrap(); // Lossy
             vertices_weights
                 .write_le_to_f32(i_vertex_rig.weights.0)
                 .unwrap();
@@ -665,20 +671,22 @@ fn main() {
                     .join(format!("texture/001/{}.tid", tex_name)),
             ) {
                 Ok(f) => f,
-                Err(e) => if e.kind() == IOErrorKind::NotFound {
-                    println!(
-                        "/!\\ Failed to open texture '{}.tid', ignoring...",
-                        tex_name
-                    );
-                    continue;
-                } else {
-                    panic!(e)
-                },
+                Err(e) => {
+                    if e.kind() == IOErrorKind::NotFound {
+                        println!(
+                            "/!\\ Failed to open texture '{}.tid', ignoring...",
+                            tex_name
+                        );
+                        continue;
+                    } else {
+                        panic!(e)
+                    }
+                }
             };
             &mut BufReader::new(file)
         };
         let tid = TID::import(in_tid).unwrap();
-        let image = tid.convert();
+        let image = tid.convert(in_tid).unwrap();
         let w = &mut BufWriter::new(
             File::create(output_path.join(format!("{}.png", tex_name))).unwrap(),
         );
