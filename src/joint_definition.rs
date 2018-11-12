@@ -1,8 +1,8 @@
-use error::{ISM2ImportError, UnknownSubSection};
+use crate::error::{ISM2ImportError, UnknownSubSection};
 use ez_io::{MagicNumberCheck, ReadE};
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
-use Result;
+use crate::Result;
 
 pub struct JointDefinition {
     pub sub_sections: Vec<JointDefinitionSubSection>,

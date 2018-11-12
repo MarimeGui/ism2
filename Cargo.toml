@@ -2,6 +2,7 @@
 name = "ism2"
 version = "0.1.0"
 authors = ["MarimeGui <lepro.guillaume@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 half = "1.1.2"

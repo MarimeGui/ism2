@@ -1,6 +1,6 @@
 use ez_io::{MagicNumberCheck, ReadE};
 use std::io::{Read, Seek, SeekFrom};
-use Result;
+use crate::Result;
 
 pub struct TextureDefinition {
     pub sub_sections: Vec<Texture>,

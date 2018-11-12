@@ -1,8 +1,8 @@
-use error::{ISM2ImportError, UnknownSubSection};
+use crate::error::{ISM2ImportError, UnknownSubSection};
 use ez_io::{MagicNumberCheck, ReadE};
 use half::f16;
 use std::io::{Read, Seek, SeekFrom};
-use Result;
+use crate::Result;
 
 /// Defines all the geometry of the model
 pub struct ModelData {

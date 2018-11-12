@@ -8,14 +8,14 @@ pub mod model_data;
 pub mod string_table;
 pub mod texture_definition;
 
-use error::ISM2ImportError;
+use crate::error::ISM2ImportError;
 use ez_io::{MagicNumberCheck, ReadE};
-use joint_definition::JointDefinition;
-use joint_extra::JointExtra;
-use model_data::ModelData;
+use crate::joint_definition::JointDefinition;
+use crate::joint_extra::JointExtra;
+use crate::model_data::ModelData;
 use std::io::{Read, Seek, SeekFrom};
-use string_table::import_strings_table;
-use texture_definition::TextureDefinition;
+use crate::string_table::import_strings_table;
+use crate::texture_definition::TextureDefinition;
 
 type Result<T> = std::result::Result<T, ISM2ImportError>;
 

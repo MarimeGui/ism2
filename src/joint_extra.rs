@@ -1,7 +1,7 @@
-use error::ISM2ImportError;
+use crate::error::ISM2ImportError;
 use ez_io::{MagicNumberCheck, ReadE};
 use std::io::{Read, Seek, SeekFrom};
-use Result;
+use crate::Result;
 
 pub struct JointExtra {
     pub sub_sections: Vec<Unnamed31>,
