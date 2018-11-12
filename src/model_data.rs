@@ -38,6 +38,7 @@ pub struct VertexAttribute {
 pub enum VerticesDataBuffer {
     Geometry(VerticesGeometryBuffer),
     Rigging(VerticesRiggingBuffer),
+    Unknown08,
 }
 
 pub struct VerticesGeometryBuffer {
@@ -134,8 +135,8 @@ impl SubSection {
             0x6E => SubSection::Unnamed6E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: 0x0A,
-                    magic_number_sub_section: x,
+                    in_section: 0x0A,
+                    failed_to_match: x,
                 }))
             }
         })
@@ -171,10 +172,13 @@ impl Vertices {
             0x07 | 0x01 => {
                 VerticesDataBuffer::Rigging(VerticesRiggingBuffer::import(reader, nb_vertices)?)
             }
+            0x08 => {
+                VerticesDataBuffer::Unknown08
+            }
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: 0x59,
-                    magic_number_sub_section: x,
+                    in_section: 0x59,
+                    failed_to_match: x,
                 }))
             }
         };
@@ -321,8 +325,8 @@ impl MeshSubSection {
             0x6E => MeshSubSection::Unnamed6E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: 0x46,
-                    magic_number_sub_section: x,
+                    in_section: 0x46,
+                    failed_to_match: x,
                 }))
             }
         })

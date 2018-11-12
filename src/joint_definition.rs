@@ -176,8 +176,8 @@ impl JointDefinitionSubSection {
             }
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: 0x03,
-                    magic_number_sub_section: x,
+                    in_section: 0x03,
+                    failed_to_match: x,
                 }))
             }
         })
@@ -234,8 +234,8 @@ impl JointSubSection {
             0x5C => JointSubSection::Unnamed5C,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: 0x05,
-                    magic_number_sub_section: x,
+                    in_section: 0x05,
+                    failed_to_match: x,
                 }))
             }
         })
@@ -287,8 +287,8 @@ impl JointAttribute {
             0x7E => JointAttribute::Unnamed7E,
             x => {
                 return Err(ISM2ImportError::UnknownSubSection(UnknownSubSection {
-                    magic_number_section: 0x5B,
-                    magic_number_sub_section: x,
+                    in_section: 0x5B,
+                    failed_to_match: x,
                 }))
             }
         })

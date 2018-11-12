@@ -357,6 +357,9 @@ fn main() {
                                     });
                                 }
                             }
+                            VerticesDataBuffer::Unknown08 => {
+                                println!("/?\\ Found a 0x08 attribute in Model Data...");
+                            }
                         },
                         SubSection::Mesh(mesh) => {
                             let mut i_faces = Vec::new();

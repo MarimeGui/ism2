@@ -5,8 +5,8 @@ use std::io::Error as IOError;
 
 #[derive(Debug)]
 pub struct UnknownSubSection {
-    pub magic_number_section: u32,
-    pub magic_number_sub_section: u32,
+    pub in_section: u32,
+    pub failed_to_match: u32,
 }
 
 impl Error for UnknownSubSection {
@@ -19,8 +19,8 @@ impl fmt::Display for UnknownSubSection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Unknown Magic Number: 0x{:X}, Section Magic Number: 0x{:X}",
-            self.magic_number_sub_section, self.magic_number_section
+            "Unknown Magic Number: 0x{:X}, In Section Magic Number: 0x{:X}",
+            self.failed_to_match, self.in_section
         )
     }
 }
