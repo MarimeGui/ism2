@@ -30,7 +30,6 @@ use std::f32::consts::PI;
 use std::fs::{create_dir_all, File};
 use std::io::ErrorKind as IOErrorKind;
 use std::io::{BufReader, BufWriter};
-use std::io::{Seek, SeekFrom};
 use std::path::Path;
 use std::process::exit;
 use tid::TID;
@@ -325,6 +324,7 @@ fn main() {
     let mut i_joints: Vec<IJoint> = Vec::new();
     let mut i_textures: Vec<String> = Vec::new();
     let mut i_in_vertex_id_to_joint_id: HashMap<u32, usize> = HashMap::new();
+    let mut i_joint_id_first_order_to_second_order: Vec<u32> = Vec::new();
 
     // Get the required information from the ISM file
     for section in ism.sections {
@@ -403,6 +403,7 @@ fn main() {
                     match sub_section {
                         JointDefinitionSubSection::Joint(joint) => {
                             i_in_vertex_id_to_joint_id.insert(joint.in_vertex_id, id);
+                            i_joint_id_first_order_to_second_order.push(joint.in_vertex_id);
                             let mut i_transform: Option<
                                 IPositionCoordinates,
                             > = None;
@@ -604,15 +605,15 @@ fn main() {
     }
     if !i_joints.is_empty() {
         let mut vertices_inv_file = File::create(output_path.join("joints_inv.bin")).unwrap();
-        for (i, i_joint) in i_joints.clone().iter().enumerate() {
-            let write_to = i_in_vertex_id_to_joint_id.get(&(i as u32)).unwrap() * 64;
-            vertices_inv_file
-                .seek(SeekFrom::Start(write_to as u64))
-                .unwrap(); // Lossy
+        for second_order in i_joint_id_first_order_to_second_order {
+            let matrix = match i_joints.get(second_order as usize) {
+                Some(j) => j.matrix,
+                None => [1f32, 0f32, 0f32, 0f32, 0f32, 1f32, 0f32, 0f32, 0f32, 0f32, 1f32, 0f32, 0f32, 0f32, 0f32, 1f32],
+            };
             for id in vec![0usize, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15] {
                 // This is weird
                 vertices_inv_file
-                    .write_le_to_f32(i_joint.matrix[id])
+                    .write_le_to_f32(matrix[id])
                     .unwrap();
             }
         }
@@ -870,21 +871,21 @@ fn main() {
     if !i_joints.is_empty() {
         let buffer_id = buffers.len();
         buffers.push(Buffer {
-            byte_length: i_joints.len() * 4 * 4 * 4,
+            byte_length: i_nodes.len() * 4 * 4 * 4,
             uri: Some("joints_inv.bin".to_owned()),
         });
         let buffer_view_id = buffer_views.len();
         buffer_views.push(BufferView {
             buffer: buffer_id,
             byte_offset: None,
-            byte_length: i_joints.len() * 4 * 4 * 4,
+            byte_length: i_nodes.len() * 4 * 4 * 4,
             byte_stride: None,
         });
         joints_inv_accessor_id = Some(accessors.len());
         accessors.push(Accessor {
             buffer_view: Some(buffer_view_id),
             component_type: 5126,
-            count: i_joints.len(),
+            count: i_nodes.len(),
             attribute_type: "MAT4".to_owned(),
             min: None,
             max: None,
